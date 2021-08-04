@@ -29,7 +29,7 @@ class SendCurl
      * @param array $header
      * @param array $conteudo
      * ----------------------------------------------------------------------------
-     * @return array $response
+     * @return string $response
      */
     public function resquest($url, $metodo = "POST", $header = null, $conteudo)
     {

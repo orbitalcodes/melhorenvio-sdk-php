@@ -1,13 +1,13 @@
 {
-  "name": "duug-com-br/melhorenvio-sdk-php",
+  "name": "yhanndaniel/melhorenvio-sdk-php",
   "description": "SDK PHP de integração com o melhor envio",
   "keywords": ["sdk", "php", "melhor envio", "frete"],
-  "homepage": "https://github.com/duug-com-br/melhorenvio-sdk-php",
+  "homepage": "https://github.com/yhanndaniel/melhorenvio-sdk-php",
   "license": "MIT",
   "authors": [
     {
-      "name": "Igor Cacerez Albino",
-      "email": "igor.cacerez@gmail.com",
+      "name": "Yhann Daniel Gomes da Cruz",
+      "email": "yhanndaniel@gmail.com",
       "role": "Developer"
     }
   ],

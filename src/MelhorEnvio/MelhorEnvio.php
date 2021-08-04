@@ -41,15 +41,40 @@ class MelhorEnvio
      * @param $nameApp // Nome do aplicativo
      * @param $email // Email do técnico
      */
-    public function __construct($id, $secret, $nameApp, $email)
+    public function __construct()
     {
         // Repassa as configurações iniciais para as globais
-        $this->clientId = $id;
-        $this->secretKey = $secret;
-        $this->nameApp = $nameApp;
-        $this->email = $email;
+
 
     } // End >> fun::__construct()
+
+    public function setClientId($clientId)
+    {
+        // Salva a informação na constante
+        $this->clientId = $clientId;
+
+    } // End >> fun::setClientId()
+
+    public function setSecretKey($secretKey)
+    {
+        // Salva a informação na constante
+        $this->secretKey = $secretKey;
+
+    } // End >> fun::setSecretKey()
+
+    public function setNameApp($nameApp)
+    {
+        // Salva a informação na constante
+        $this->nameApp = $nameApp;
+
+    } // End >> fun::setNameApp()
+
+    public function setEmail($email)
+    {
+        // Salva a informação na constante
+        $this->email = $email;
+
+    } // End >> fun::setEmail()
 
 
     /**
@@ -188,6 +213,122 @@ class MelhorEnvio
 
     } // End >> fun::refreshToken()
 
+    public function getBalance()
+    {
+        // Variavel de retorno
+        $retorno = ["error" => true, "data" => null];
+        $dados = null;
+
+        // Recupera o accessToken
+        $accessToken = $this->accessToken;
+
+        // Verifica se informou o token
+        if(!empty($accessToken))
+        {
+            // Url
+            $url = $this->url . "api/v2/me/balance";
+
+
+            // Header
+            $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
+
+            // Realiza a requisição
+            $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "GET", $header, null);
+
+            // Decodifica
+            $resultado = json_decode($resultado);
+
+            //dd($resultado);
+
+            // Veririfca se deu erro
+            if(!empty($resultado->errors) || !empty($resultado->error))
+            {
+                // Adiciona o objeto
+                $retorno["data"] = (!empty($resultado->errors) ? $resultado->errors : $resultado->error);
+            }
+            else
+            {
+                $dados = [
+                    'balance' => $resultado->balance,
+                    'reserved' => $resultado->reserved,
+                    'debts' => $resultado->debts
+                ];
+
+                // Monta o retorno
+                $retorno = [
+                    "error" => false,
+                    "message" => "success",
+                    "data" => $dados
+                ];
+            }
+        }
+        else
+        {
+            $retorno["message"] = "Access Token não informado.";
+        } // Error >> Token não informado
+
+        // Retorno
+        return $retorno;
+    }
+
+    public function getMe()
+    {
+        // Variavel de retorno
+        $retorno = ["error" => true, "data" => null];
+        $dados = null;
+
+        // Recupera o accessToken
+        $accessToken = $this->accessToken;
+
+        // Verifica se informou o token
+        if(!empty($accessToken))
+        {
+            // Url
+            $url = $this->url . "api/v2/me";
+
+
+            // Header
+            $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
+
+            // Realiza a requisição
+            $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "GET", $header, null);
+
+            // Decodifica
+            $resultado = json_decode($resultado);
+
+            //dd($resultado);
+
+
+            // Veririfca se deu erro
+            if(!empty($resultado->errors) || !empty($resultado->error))
+            {
+                // Adiciona o objeto
+                $retorno["data"] = (!empty($resultado->errors) ? $resultado->errors : $resultado->error);
+            }
+            else
+            {
+                $dados = [
+                    'user' => $resultado->firstname.' '.$resultado->lastname,
+                    'shipments' => $resultado->limits->shipments.'/'.$resultado->limits->shipments_available,
+                ];
+
+                // Monta o retorno
+                $retorno = [
+                    "error" => false,
+                    "message" => "success",
+                    "data" => $dados
+                ];
+            }
+
+        }
+        else
+        {
+            $retorno["message"] = "Access Token não informado.";
+        } // Error >> Token não informado
+
+        // Retorno
+        return $retorno;
+    }
 
     /**
      * Método responsável por calcular um frete de uma origem a um destino
@@ -676,7 +817,7 @@ class MelhorEnvio
                 "error" => false,
                 "data" => [
                     "accessToken" => $resposta->access_token,
-                    "tokenValidate" => date("Y-m-d", strtotime("+30 days")),
+                    "tokenValidate" => date("Y-m-d", strtotime("+29 days")),
                     "refreshToken" => $resposta->refresh_token
                 ]
             ];
@@ -709,6 +850,8 @@ class MelhorEnvio
 
         // Realiza a requisição
         $resposta = $SendCurl->resquest($url, "POST", $header, $conteudo);
+
+        $resposta = json_decode($resposta);
 
         // Verifica se deu erro
         if(!empty($resposta->errors) || !empty($resposta->error))
