@@ -526,13 +526,13 @@ class MelhorEnvio
         foreach ($produtos as $produto)
         {
             // Soma o total
-            $valorTotal = $valorTotal + ($produto->quantity * $produto->insurance_value);
+            $valorTotal = $valorTotal + ($produto['quantity'] * $produto['insurance_value']);
 
             // Adiciona o produto
             $conteudo->products[] = [
-                "name" => $produto->nome,
-                "quantity" => $produto->quantity,
-                "unitary_value" => $produto->insurance_value
+                "name" => $produto['name'],
+                "quantity" => $produto['quantity'],
+                "unitary_value" => $produto['insurance_value']
             ];
         }
 
