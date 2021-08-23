@@ -60,5 +60,10 @@ class Product
         $this->products[] = $produto;
     } // End >> fun::setProducts()
 
+    public function resetProducts()
+    {
+        $this->products = [];
+    }
+
 
 } // End >> Class::Product
