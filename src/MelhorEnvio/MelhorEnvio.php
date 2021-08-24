@@ -2,6 +2,8 @@
 
 namespace MelhorEnvio;
 
+use DateTime;
+
 /**
  * Classe responsável por realizar as solicitações com a
  * plataforma melhor envio. É possivel calcular Frete e
@@ -411,6 +413,8 @@ class MelhorEnvio
             // Decodifica
             $resultado = json_decode($resultado);
 
+            $dataNow = new DateTime('now');
+
             // Verifica se é um array
             if(is_array($resultado))
             {
@@ -430,6 +434,11 @@ class MelhorEnvio
                             "service" => $res->name,
                             "value" => $res->custom_price,
                             "timeDays" => $res->custom_delivery_time,
+                            "deliveryRange" => $res->custom_delivery_range,
+                            "deadline" => [
+                                "min" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->min),
+                                "max" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->max)
+                            ],
                             "packages" => $res->packages
                         ];
                     }
