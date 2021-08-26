@@ -3,6 +3,7 @@
 namespace MelhorEnvio;
 
 use DateTime;
+use stdClass;
 
 /**
  * Classe responsável por realizar as solicitações com a
@@ -385,13 +386,13 @@ class MelhorEnvio
             $produtos = $Products->getProducts();
 
             // Cria o objeto de conteudo
-            $conteudo = new \StdClass();
+            $conteudo = new stdClass();
 
             // Informa a origem e destino
-            $conteudo->from = new \StdClass();
+            $conteudo->from = new stdClass();
             $conteudo->from->postal_code = $cepOrigem;
 
-            $conteudo->to = new \StdClass();
+            $conteudo->to = new stdClass();
             $conteudo->to->postal_code = $cepDestino;
 
             // Percorre os produtos
@@ -519,7 +520,7 @@ class MelhorEnvio
         $produtos = $Products->getProducts();
 
         // Inicia o objeto de envio
-        $conteudo = new \StdClass();
+        $conteudo = new stdClass();
 
         // Servico
         $conteudo->service = $codService;
@@ -546,7 +547,7 @@ class MelhorEnvio
         }
 
         // Opcoes
-        $conteudo->options = new \StdClass();
+        $conteudo->options = new stdClass();
         $conteudo->options->insurance_value = $valorTotal;
         $conteudo->options->receipt = false;
         $conteudo->options->own_hand = false;
@@ -612,7 +613,7 @@ class MelhorEnvio
         $url = $this->url . "api/v2/me/shipment/checkout";
 
         // Configura o conteudo
-        $conteudo = new \StdClass();
+        $conteudo = new stdClass();
         $conteudo->orders = $ids;
 
         // Codifica o conteudo em json
@@ -667,7 +668,7 @@ class MelhorEnvio
         $url = $this->url . "api/v2/me/shipment/print";
 
         // Configura o conteudo
-        $conteudo = new \StdClass();
+        $conteudo = new stdClass();
         $conteudo->mode = "public";
         $conteudo->orders = $ids;
 
@@ -735,7 +736,7 @@ class MelhorEnvio
         $url = $this->url . "api/v2/me/shipment/tracking";
 
         // Configura o conteudo
-        $conteudo = new \StdClass();
+        $conteudo = new stdClass();
         $conteudo->orders = $ids;
 
         // Codifica o conteudo em json
