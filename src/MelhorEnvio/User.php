@@ -3,6 +3,8 @@
 
 namespace MelhorEnvio;
 
+use stdClass;
+
 /**
  * Class User
  *
@@ -32,7 +34,7 @@ class User
     {
         // Instancia o objeto
         // Criando um objeto vazio
-        $this->user = new \StdClass();
+        $this->user = new stdClass();
 
     } // End >> fun::__construct()
 
@@ -120,7 +122,7 @@ class User
      * Método responsável por retornar o objeto de
      * usuario preenchido e configurado para uso.
      *
-     * @return \StdClass
+     * @return stdClass
      */
     public function getObjetc()
     {
