@@ -412,7 +412,11 @@ class MelhorEnvio
             $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "POST", $header, $conteudo);
 
             // Decodifica
-            $resultado = json_decode($resultado);
+            $resultado1 = json_decode($resultado);
+
+            $resultado = [];
+
+            \is_object($resultado1) ? $resultado[0] = $resultado1 : $resultado = $resultado1;
 
             $dataNow = new DateTime('now');
 
@@ -423,7 +427,7 @@ class MelhorEnvio
                 foreach ($resultado as $res)
                 {
                     // Verifica se não deu erro
-                    if(empty($res->error))
+                    if(empty($res->errors))
                     {
                         // Add o conteudo
                         $dados[] = [
