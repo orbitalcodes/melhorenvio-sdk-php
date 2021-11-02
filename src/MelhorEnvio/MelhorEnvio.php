@@ -427,7 +427,7 @@ class MelhorEnvio
                 foreach ($resultado as $res)
                 {
                     // Verifica se não deu erro
-                    if(empty($res->errors))
+                    if(empty($res->error))
                     {
                         // Add o conteudo
                         $dados[] = [
