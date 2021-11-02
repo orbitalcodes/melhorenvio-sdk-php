@@ -1,13 +1,23 @@
 {
-  "name": "yhanndaniel/melhorenvio-sdk-php",
+  "name": "orbitalcodes/melhorenvio-sdk-php",
   "description": "SDK PHP de integração com o melhor envio",
   "keywords": ["sdk", "php", "melhor envio", "frete"],
   "homepage": "https://github.com/yhanndaniel/melhorenvio-sdk-php",
   "license": "MIT",
   "authors": [
     {
+      "name": "Igor Cacerez Albino",
+      "email": "igor.cacerez@gmail.com",
+      "role": "Developer"
+    },
+    {
       "name": "Yhann Daniel Gomes da Cruz",
       "email": "yhanndaniel@gmail.com",
+      "role": "Developer"
+    },
+    {
+      "name": "Kallef Alexandre",
+      "email": "kallef@orbitaldev.com.br",
       "role": "Developer"
     }
   ],
