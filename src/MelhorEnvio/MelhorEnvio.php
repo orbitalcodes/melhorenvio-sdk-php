@@ -301,6 +301,11 @@ class MelhorEnvio
 
             //dd($resultado);
 
+            if (!empty($resultado->message) && $resultado->message == "Unauthenticated."){
+                $retorno["message"] = "Token Expirado";
+                return $retorno;
+            }
+
 
             // Veririfca se deu erro
             if(!empty($resultado->errors) || !empty($resultado->error))
@@ -427,7 +432,7 @@ class MelhorEnvio
                 foreach ($resultado as $res)
                 {
                     // Verifica se não deu erro
-                    if(empty($res->errors))
+                    if(empty($res->error))
                     {
                         // Add o conteudo
                         $dados[] = [
@@ -831,9 +836,15 @@ class MelhorEnvio
                 "error" => false,
                 "data" => [
                     "accessToken" => $resposta->access_token,
-                    "tokenValidate" => date("Y-m-d", strtotime("+29 days")),
+                    "tokenValidate" => date("Y-m-d", strtotime("+28 days")),
                     "refreshToken" => $resposta->refresh_token
                 ]
+            ];
+        } else {
+            // Retorna como erro
+            $retorno = [
+                "error" => true,
+                "data" => $resposta->error_description
             ];
         }
 
