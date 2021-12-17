@@ -629,22 +629,22 @@ class MelhorEnvio
         $conteudo = json_encode($conteudo);
 
         // Instancia o objeto de requisição
-        $SendCurl = new SendCurl($this->nameApp, $this->email);
+        $sendCurl = new SendCurl($this->nameApp, $this->email);
 
         // Header
         $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
 
         // Realiza a requisição
-        $resposta = $SendCurl->resquest($url, "POST", $header, $conteudo);
+        $resposta = $sendCurl->resquest($url, "POST", $header, $conteudo);
 
         // Decodifica
         $resposta = json_decode($resposta);
 
         // Verifica se não deu erro
-        if(empty($resposta->errors) && empty($resposta->error))
+        if($resposta && empty($resposta->errors) && empty($resposta->error))
         {
             // Gera a etiqueta
-            $retorno = $this->requestTag($SendCurl, $header, $conteudo);
+            $retorno = $this->requestTag($sendCurl, $header, $conteudo);
         }
         else
         {
@@ -820,10 +820,10 @@ class MelhorEnvio
         }
 
         // Instancia o objeto de requisição
-        $SendCurl = new SendCurl($this->nameApp, $this->email);
+        $sendCurl = new SendCurl($this->nameApp, $this->email);
 
         // Realiza a solicitação
-        $resposta = $SendCurl->resquest($url, "POST", null, $conteudo);
+        $resposta = $sendCurl->resquest($url, "POST", null, $conteudo);
 
         // Decodifica o json
         $resposta = (!empty($resposta) ? json_decode($resposta) : null);
@@ -858,13 +858,13 @@ class MelhorEnvio
      * Método responsável por solicitar a geração de uma etiqueta
      * apos ela estiver comprada.
      * --------------------------------------------------------------------------
-     * @param SendCurl $SendCurl
+     * @param SendCurl $sendCurl
      * @param $header
      * @param $conteudo
      * --------------------------------------------------------------------------
      * @return array
      */
-    private function requestTag(SendCurl $SendCurl, $header, $conteudo)
+    private function requestTag(SendCurl $sendCurl, $header, $conteudo)
     {
         // Gera o pagamento
         $retorno = ["error" => true, "data" => null];
@@ -874,7 +874,7 @@ class MelhorEnvio
         $url = $this->url . "api/v2/me/shipment/generate";
 
         // Realiza a requisição
-        $resposta = $SendCurl->resquest($url, "POST", $header, $conteudo);
+        $resposta = $sendCurl->resquest($url, "POST", $header, $conteudo);
 
         $resposta = json_decode($resposta);
 

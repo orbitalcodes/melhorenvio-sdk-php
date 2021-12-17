@@ -61,11 +61,11 @@ class User
      * Método responsável por armazenar as informações de documentos
      * tanto para pessoa juridica como fisica.
      *
-     * @param $cpf
+     * @param null $cpf
      * @param null $cnpj
      * @param null $ie
      */
-    public function setDocumentos($cpf, $cnpj = null, $ie = null)
+    public function setDocumentos($cpf = null, $cnpj = null, $ie = null)
     {
         // Armazena o cpf que é obrigatorio
         $this->user->document = preg_replace("/[^0-9]/", "", $cpf);
