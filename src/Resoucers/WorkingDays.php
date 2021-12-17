@@ -1,6 +1,6 @@
 <?php
 
-namespace MelhorEnvio;
+namespace MelhorEnvio\Resoucers;
 
 use Carbon\Carbon;
 use DateInterval;

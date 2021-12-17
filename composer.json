@@ -7,7 +7,7 @@
         "melhor envio",
         "frete"
     ],
-    "homepage": "https://github.com/yhanndaniel/melhorenvio-sdk-php",
+    "homepage": "https://github.com/orbitalcodes/melhorenvio-sdk-php",
     "license": "MIT",
     "authors": [
         {
@@ -37,7 +37,7 @@
     },
     "autoload": {
         "psr-4": {
-            "MelhorEnvio\\": "src/MelhorEnvio"
+            "MelhorEnvio\\": "src/"
         }
     }
 }

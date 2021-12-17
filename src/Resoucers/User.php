@@ -1,7 +1,7 @@
 <?php
 
 
-namespace MelhorEnvio;
+namespace MelhorEnvio\Resoucers;
 
 use stdClass;
 

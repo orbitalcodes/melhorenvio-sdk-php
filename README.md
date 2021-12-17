@@ -110,7 +110,7 @@ Exemplo de como calcular um frete para um determindado produto. Caso haja mais d
 $MelhorEnvio->setAccessToken("Access Token");
 
 // Instancia o produto
-$Product = new MelhorEnvio\Product();
+$Product = new MelhorEnvio\Resoucers\Product();
 
 // Seta as informações do produto.
 // Pode duplicar esse item para adicionar mais produtos
@@ -165,8 +165,8 @@ Primeiro é necessário realizar uma solicitação de compra de etiqueta. Veja o
 $MelhorEnvio->setAccessToken("Access Token");
 
 // Destinatario e Remetente
-$Destinatario = new MelhorEnvio\User();
-$Remetente = new MelhorEnvio\User();
+$Destinatario = new MelhorEnvio\Resoucers\User();
+$Remetente = new MelhorEnvio\Resoucers\User();
 
 
 // Adiciona as informações
@@ -200,7 +200,7 @@ $Remetente->setEndereco([
 
 
 // Instancia o produto
-$Product = new MelhorEnvio\Product();
+$Product = new MelhorEnvio\Resoucers\Product();
 
 // Seta as informações do produto.
 // Pode duplicar esse item para adicionar mais produtos

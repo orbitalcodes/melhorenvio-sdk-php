@@ -1,9 +1,14 @@
 <?php
 
-namespace MelhorEnvio;
+namespace MelhorEnvio\Endpoints;
 
 use DateTime;
 use stdClass;
+use MelhorEnvio\Client\ApiClient;
+use MelhorEnvio\Client\Response;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Classe responsável por realizar as solicitações com a
@@ -14,111 +19,8 @@ use stdClass;
  * @package MelhorEnvio
  * @author igorcacerez
  */
-class MelhorEnvio
+class MelhorEnvio extends EndpointBase
 {
-    // Identificação do app
-    private $clientId;
-    private $secretKey;
-    private $nameApp;
-    private $email; // Email tecnico
-
-    // Constantes
-    private $url = "https://www.melhorenvio.com.br/";
-    private $urlRastreio = "https://www.melhorrastreio.com.br/rastreio/";
-
-    // Url de retorno da plataforma
-    private $urlCallback;
-
-    // Informações do app já instalado
-    private $accessToken;
-
-
-    /**
-     * MelhorEnvio constructor.
-     *
-     * Método construtor responsável por adicionar as constantes os valores
-     * de configuração e credenciais do app utilizado.
-     *
-     * @param $id // Cliente ID
-     * @param $secret // Secret Key
-     * @param $nameApp // Nome do aplicativo
-     * @param $email // Email do técnico
-     */
-    public function __construct()
-    {
-        // Repassa as configurações iniciais para as globais
-
-
-    } // End >> fun::__construct()
-
-    public function setClientId($clientId)
-    {
-        // Salva a informação na constante
-        $this->clientId = $clientId;
-
-    } // End >> fun::setClientId()
-
-    public function setSecretKey($secretKey)
-    {
-        // Salva a informação na constante
-        $this->secretKey = $secretKey;
-
-    } // End >> fun::setSecretKey()
-
-    public function setNameApp($nameApp)
-    {
-        // Salva a informação na constante
-        $this->nameApp = $nameApp;
-
-    } // End >> fun::setNameApp()
-
-    public function setEmail($email)
-    {
-        // Salva a informação na constante
-        $this->email = $email;
-
-    } // End >> fun::setEmail()
-
-
-    /**
-     * Método responsável por alterar a url de requisições para
-     * a url de teste da plataforma.
-     */
-    public function activeSandbox()
-    {
-        // Base Url - Sandbox
-        $this->url = "https://sandbox.melhorenvio.com.br/";
-    } // End >> fun::activeSandbox()
-
-
-    /**
-     * Método responsável por receber a url de retorno da
-     * plataforma e salva na constante especifica.
-     *
-     * @param $url
-     */
-    public function setCallbackURL($url)
-    {
-        // Salva a informação na constante
-        $this->urlCallback = $url;
-
-    } // End >> fun::setCallbackURL()
-
-
-    /**
-     * Método responsável por salvar o Access Token
-     * na constante.
-     *
-     * @param $token
-     */
-    public function setAccessToken($token)
-    {
-        // Salva o Access Token
-        $this->accessToken = $token;
-
-    } // End >> fun::setAccessToken()
-
-
     /**
      * Método responsável por montar a url de redirecionamento de usuário, para o mesmo
      * autorizar o app a possui permissão sobre a conta do melhor envio.
@@ -142,19 +44,14 @@ class MelhorEnvio
         $urlRedirect = $this->url . "oauth/authorize?client_id={$this->clientId}&redirect_uri={$this->urlCallback}&response_type=code{$state}&scope={$permission}";
 
         // Verifica se deve redirecionar ou retornar a url
-        if($redirect == true)
-        {
+        if ($redirect == true) {
             // Redireciona
             header("Location: " . $urlRedirect);
-        }
-        else
-        {
+        } else {
             // Retorna a url configurada
             return $urlRedirect;
         }
-
-    } // End >> fun::requestAuthorization()
-
+    }
 
 
     /**
@@ -181,10 +78,8 @@ class MelhorEnvio
      */
     public function requestToken($code)
     {
-        // Retorno
         return $this->requestoOrRefreshToken($code);
-
-    } // End >> fun::requestToken()
+    }
 
 
     /**
@@ -211,10 +106,8 @@ class MelhorEnvio
      */
     public function refreshToken($refreshToken)
     {
-        // Retorno
         return $this->requestoOrRefreshToken(null, $refreshToken);
-
-    } // End >> fun::refreshToken()
+    }
 
     public function getBalance()
     {
@@ -226,8 +119,7 @@ class MelhorEnvio
         $accessToken = $this->accessToken;
 
         // Verifica se informou o token
-        if(!empty($accessToken))
-        {
+        if (!empty($accessToken)) {
             // Url
             $url = $this->url . "api/v2/me/balance";
 
@@ -236,7 +128,7 @@ class MelhorEnvio
             $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
 
             // Realiza a requisição
-            $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "GET", $header, null);
+            $resultado = (new SendCurl($this->nameApp, $this->email))->request($url, "GET", $header, null);
 
             // Decodifica
             $resultado = json_decode($resultado);
@@ -244,29 +136,24 @@ class MelhorEnvio
             //dd($resultado);
 
             // Veririfca se deu erro
-            if(!empty($resultado->errors) || !empty($resultado->error))
-            {
+            if (!empty($resultado->errors) || !empty($resultado->error)) {
                 // Adiciona o objeto
                 $retorno["data"] = (!empty($resultado->errors) ? $resultado->errors : $resultado->error);
-            }
-            else
-            {
+            } else {
                 $dados = [
-                    'balance' => $resultado->balance,
+                    'balance'  => $resultado->balance,
                     'reserved' => $resultado->reserved,
-                    'debts' => $resultado->debts
+                    'debts'    => $resultado->debts
                 ];
 
                 // Monta o retorno
                 $retorno = [
-                    "error" => false,
+                    "error"   => false,
                     "message" => "success",
-                    "data" => $dados
+                    "data"    => $dados
                 ];
             }
-        }
-        else
-        {
+        } else {
             $retorno["message"] = "Access Token não informado.";
         } // Error >> Token não informado
 
@@ -284,8 +171,7 @@ class MelhorEnvio
         $accessToken = $this->accessToken;
 
         // Verifica se informou o token
-        if(!empty($accessToken))
-        {
+        if (!empty($accessToken)) {
             // Url
             $url = $this->url . "api/v2/me";
 
@@ -294,43 +180,38 @@ class MelhorEnvio
             $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
 
             // Realiza a requisição
-            $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "GET", $header, null);
+            $resultado = (new SendCurl($this->nameApp, $this->email))->request($url, "GET", $header, null);
 
             // Decodifica
             $resultado = json_decode($resultado);
 
             //dd($resultado);
 
-            if (!empty($resultado->message) && $resultado->message == "Unauthenticated."){
+            if (!empty($resultado->message) && $resultado->message == "Unauthenticated.") {
                 $retorno["message"] = "Token Expirado";
                 return $retorno;
             }
 
 
             // Veririfca se deu erro
-            if(!empty($resultado->errors) || !empty($resultado->error))
-            {
+            if (!empty($resultado->errors) || !empty($resultado->error)) {
                 // Adiciona o objeto
                 $retorno["data"] = (!empty($resultado->errors) ? $resultado->errors : $resultado->error);
-            }
-            else
-            {
+            } else {
                 $dados = [
-                    'user' => $resultado->firstname.' '.$resultado->lastname,
-                    'shipments' => $resultado->limits->shipments.'/'.$resultado->limits->shipments_available,
+                    'user'      => $resultado->firstname . ' ' . $resultado->lastname,
+                    'shipments' => $resultado->limits->shipments . '/' . $resultado->limits->shipments_available,
                 ];
 
                 // Monta o retorno
                 $retorno = [
-                    "error" => false,
+                    "error"   => false,
                     "message" => "success",
-                    "data" => $dados
+                    "data"    => $dados
                 ];
             }
 
-        }
-        else
-        {
+        } else {
             $retorno["message"] = "Access Token não informado.";
         } // Error >> Token não informado
 
@@ -378,8 +259,7 @@ class MelhorEnvio
         $accessToken = $this->accessToken;
 
         // Verifica se informou o token
-        if(!empty($accessToken))
-        {
+        if (!empty($accessToken)) {
             // Url
             $url = $this->url . "api/v2/me/shipment/calculate";
 
@@ -401,8 +281,7 @@ class MelhorEnvio
             $conteudo->to->postal_code = $cepDestino;
 
             // Percorre os produtos
-            foreach ($produtos as $produto)
-            {
+            foreach ($produtos as $produto) {
                 // Adiciona no array
                 $conteudo->products[] = $produto;
             }
@@ -410,11 +289,8 @@ class MelhorEnvio
             // Converte em json o conteudo
             $conteudo = json_encode($conteudo);
 
-            // Header
-            $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
-
             // Realiza a requisição
-            $resultado = (new SendCurl($this->nameApp, $this->email))->resquest($url, "POST", $header, $conteudo);
+            $resultado = $this->request("POST", 'api/v2/me/shipment/calculate', $conteudo);
 
             // Decodifica
             $resultado1 = json_decode($resultado);
@@ -426,65 +302,55 @@ class MelhorEnvio
             $dataNow = new DateTime('now');
 
             // Verifica se é um array
-            if(is_array($resultado))
-            {
+            if (is_array($resultado)) {
                 // Percorre
-                foreach ($resultado as $res)
-                {
+                foreach ($resultado as $res) {
                     // Verifica se não deu erro
-                    if(empty($res->error))
-                    {
+                    if (empty($res->error)) {
                         // Add o conteudo
                         $dados[] = [
-                            "company" => [
-                                "name" => $res->company->name,
-                                "image" =>$res->company->picture
+                            "company"       => [
+                                "name"  => $res->company->name,
+                                "image" => $res->company->picture
                             ],
-                            "code" => $res->id,
-                            "service" => $res->name,
-                            "value" => $res->custom_price,
-                            "timeDays" => $res->custom_delivery_time,
+                            "code"          => $res->id,
+                            "service"       => $res->name,
+                            "value"         => $res->custom_price,
+                            "timeDays"      => $res->custom_delivery_time,
                             "deliveryRange" => $res->custom_delivery_range,
-                            "deadline" => [
+                            "deadline"      => [
                                 "min" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->min),
                                 "max" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->max)
                             ],
-                            "packages" => $res->packages
+                            "packages"      => $res->packages
                         ];
                     }
                 }
 
                 // Monta o retorno
                 $retorno = [
-                    "error" => false,
+                    "error"   => false,
                     "message" => "success",
-                    "data" => $dados
+                    "data"    => $dados
                 ];
-            }
-            else
-            {
+            } else {
                 // Verifica de deu erro na autenticacao
-                if($resultado == "Unauthenticated")
-                {
+                if ($resultado == "Unauthenticated") {
                     // Informa do erro
                     $retorno["message"] = "Unauthenticated";
-                }
-                else
-                {
+                } else {
                     // Informa do erro
                     $retorno["message"] = "Ocorreu um erro ao calcular.";
                 }
             } // Error >> Autenticação ou Erro no calculo.
-        }
-        else
-        {
+        } else {
             $retorno["message"] = "Access Token não informado.";
         } // Error >> Token não informado
 
         // Retorno
         return $retorno;
 
-    } // End >> fun::calculate()
+    }
 
 
     /**
@@ -542,15 +408,14 @@ class MelhorEnvio
         $conteudo->products = [];
 
         // Percorre os produtos
-        foreach ($produtos as $produto)
-        {
+        foreach ($produtos as $produto) {
             // Soma o total
             $valorTotal = $valorTotal + ($produto['quantity'] * $produto['insurance_value']);
 
             // Adiciona o produto
             $conteudo->products[] = [
-                "name" => $produto['name'],
-                "quantity" => $produto['quantity'],
+                "name"          => $produto['name'],
+                "quantity"      => $produto['quantity'],
                 "unitary_value" => $produto['insurance_value']
             ];
         }
@@ -577,31 +442,28 @@ class MelhorEnvio
         $conteudo = json_encode($conteudo);
 
         // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->resquest($url, "POST", $header, $conteudo);
+        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
 
         // Decodifica a responsa
         $resposta = json_decode($resposta);
 
         // Veririfca se deu erro
-        if(!empty($resposta->errors) || !empty($resposta->error))
-        {
+        if (!empty($resposta->errors) || !empty($resposta->error)) {
             // Adiciona o objeto
             $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-        }
-        else
-        {
+        } else {
             // Retorno de sucesso
             $retorno = [
-                "error" => false,
+                "error"   => false,
                 "message" => "success",
-                "data" => $resposta->id
+                "data"    => $resposta->id
             ];
         }
 
         // Retorno
         return $retorno;
 
-    } // End >> fun::requestBuyTag()
+    }
 
 
     /**
@@ -635,19 +497,16 @@ class MelhorEnvio
         $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
 
         // Realiza a requisição
-        $resposta = $sendCurl->resquest($url, "POST", $header, $conteudo);
+        $resposta = $sendCurl->request($url, "POST", $header, $conteudo);
 
         // Decodifica
         $resposta = json_decode($resposta);
 
         // Verifica se não deu erro
-        if($resposta && empty($resposta->errors) && empty($resposta->error))
-        {
+        if ($resposta && empty($resposta->errors) && empty($resposta->error)) {
             // Gera a etiqueta
             $retorno = $this->requestTag($sendCurl, $header, $conteudo);
-        }
-        else
-        {
+        } else {
             // Incorporra o erro
             $retorno["message"] = "Ocorreu um erro ao realizar compra das etiquetas";
             $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
@@ -656,7 +515,7 @@ class MelhorEnvio
         // Retorno
         return $retorno;
 
-    } // End >> fun::processBuyTag()
+    }
 
 
     /**
@@ -688,33 +547,29 @@ class MelhorEnvio
         $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
 
         // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->resquest($url, "POST", $header, $conteudo);
+        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
 
         // Decodifica
         $resposta = json_decode($resposta);
 
         // Verifica se deu erro
-        if(!empty($resposta->errors) || !empty($resposta->error))
-        {
+        if (!empty($resposta->errors) || !empty($resposta->error)) {
             // Explica o erro ocorrido
             $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
             $retorno["message"] = "Ocorreu um erro ao imprimir etiqueta";
-        }
-        else
-        {
+        } else {
             // Array de sucesso
             $retorno = [
-                "error" => false,
+                "error"   => false,
                 "message" => "success",
-                "data" => $resposta
+                "data"    => $resposta
             ];
         }
 
         // Retorno
         return $retorno;
 
-    } // End >> fun::print()
-
+    }
 
 
     /**
@@ -755,32 +610,29 @@ class MelhorEnvio
         $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
 
         // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->resquest($url, "POST", $header, $conteudo);
+        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
 
         // Decodifica
         $resposta = json_decode($resposta);
 
         // Verifica se deu erro
-        if(!empty($resposta->errors) || !empty($resposta->error))
-        {
+        if (!empty($resposta->errors) || !empty($resposta->error)) {
             // Explica o erro ocorrido
             $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
             $retorno["message"] = "Ocorreu um erro ao solicitar códgio de rastreio.";
-        }
-        else
-        {
+        } else {
             // Array de sucesso
             $retorno = [
-                "error" => false,
+                "error"   => false,
                 "message" => "success",
-                "data" => $resposta
+                "data"    => $resposta
             ];
         }
 
         // Retorno
         return $retorno;
 
-    } // End >> fun::getTracking()
+    }
 
 
     /**
@@ -801,20 +653,17 @@ class MelhorEnvio
 
         // Conteudo a ser informado na solicitação
         $conteudo = [
-            "grant_type" => "authorization_code",
-            "client_id" => $this->clientId,
+            "grant_type"    => "authorization_code",
+            "client_id"     => $this->clientId,
             "client_secret" => $this->secretKey,
 
         ];
 
         // Verifica o tipo da solicitacao
-        if(!empty($code))
-        {
+        if (!empty($code)) {
             $conteudo["redirect_uri"] = $this->urlCallback;
             $conteudo["code"] = $code;
-        }
-        else
-        {
+        } else {
             $conteudo["grant_type"] = "refresh_token";
             $conteudo["refresh_token"] = $refreshToken;
         }
@@ -823,36 +672,33 @@ class MelhorEnvio
         $sendCurl = new SendCurl($this->nameApp, $this->email);
 
         // Realiza a solicitação
-        $resposta = $sendCurl->resquest($url, "POST", null, $conteudo);
+        $resposta = $sendCurl->request($url, "POST", null, $conteudo);
 
         // Decodifica o json
         $resposta = (!empty($resposta) ? json_decode($resposta) : null);
 
         // Verifica se retornou o token
-        if(!empty($resposta->access_token))
-        {
+        if (!empty($resposta->access_token)) {
             // Retorna como sucesso
             $retorno = [
                 "error" => false,
-                "data" => [
-                    "accessToken" => $resposta->access_token,
+                "data"  => [
+                    "accessToken"   => $resposta->access_token,
                     "tokenValidate" => date("Y-m-d", strtotime("+28 days")),
-                    "refreshToken" => $resposta->refresh_token
+                    "refreshToken"  => $resposta->refresh_token
                 ]
             ];
         } else {
             // Retorna como erro
             $retorno = [
                 "error" => true,
-                "data" => $resposta->error_description
+                "data"  => $resposta->error_description
             ];
         }
 
         // Retorno
         return $retorno;
-
-    } // End >> fun::requestoOrRefreshToken()
-
+    }
 
     /**
      * Método responsável por solicitar a geração de uma etiqueta
@@ -874,29 +720,24 @@ class MelhorEnvio
         $url = $this->url . "api/v2/me/shipment/generate";
 
         // Realiza a requisição
-        $resposta = $sendCurl->resquest($url, "POST", $header, $conteudo);
+        $resposta = $sendCurl->request($url, "POST", $header, $conteudo);
 
         $resposta = json_decode($resposta);
 
         // Verifica se deu erro
-        if(!empty($resposta->errors) || !empty($resposta->error))
-        {
+        if (!empty($resposta->errors) || !empty($resposta->error)) {
             // Explica o erro ocorrido
             $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
             $retorno["message"] = "Erro ao gerar etiqueta";
-        }
-        else
-        {
+        } else {
             $retorno = [
-                "error" => false,
+                "error"   => false,
                 "message" => "success",
-                "data" => $resposta
+                "data"    => $resposta
             ];
         }
 
         // Retorna
         return $retorno;
-
-    } // End >> fun::requestTag()
-
-} // End >> Class::MelhorEnvio
+    }
+}
