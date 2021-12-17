@@ -28,9 +28,9 @@
     ],
     "require": {
         "php": ">=7.4",
-        "nesbot/carbon": "^2.52",
         "ext-json": "*",
-        "guzzlehttp/guzzle": "^7.4"
+        "nesbot/carbon": "^2.52",
+        "guzzlehttp/guzzle": "^6.5"
     },
     "require-dev": {
         "phpunit/phpunit": "@stable"
