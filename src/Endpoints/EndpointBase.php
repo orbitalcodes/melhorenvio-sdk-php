@@ -17,7 +17,7 @@ abstract class EndpointBase
 
     protected $secretKey;
 
-    protected $nameApp;
+    protected $appName;
 
     protected $email; // Email tecnico
 
@@ -48,11 +48,17 @@ abstract class EndpointBase
                 'appName'     => $this->appName,
                 'email'       => $this->email,
                 'accessToken' => $this->accessToken,
-                'base_uri'    => self::$sandbox ? self::$urlSandbox : self::$urlProduction,
+                'base_uri'    => $this->getBaseUri(),
             ]);
         }
 
         return $this->apiClient;
+    }
+
+    public function getBaseUri($path = null)
+    {
+        $url = $this->sandbox ? $this->urlSandbox : $this->urlProduction;
+        return rtrim($url, '/') . '/' . ltrim($path, '/');
     }
 
     /**
@@ -82,10 +88,10 @@ abstract class EndpointBase
         return $this;
     }
 
-    public function setNameApp($nameApp)
+    public function setappName($appName)
     {
         // Salva a informação na constante
-        $this->nameApp = $nameApp;
+        $this->appName = $appName;
         return $this;
     }
 
@@ -119,6 +125,18 @@ abstract class EndpointBase
     {
         // Salva o Access Token
         $this->accessToken = $token;
+        return $this;
+    }
+
+    public function enableSandbox()
+    {
+        $this->sandbox = true;
+        return $this;
+    }
+
+    public function disableSandbox()
+    {
+        $this->sandbox = false;
         return $this;
     }
 }

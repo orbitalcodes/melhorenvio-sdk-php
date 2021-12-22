@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
+use MelhorEnvio\Exceptions\MelhorEnvioException;
 use Psr\Http\Message\ResponseInterface;
 
 class ApiClient extends Client
@@ -16,7 +17,7 @@ class ApiClient extends Client
 
     protected $secretKey;
 
-    protected $nameApp;
+    protected $appName;
 
     protected $email; // Email tecnico
 
@@ -39,13 +40,20 @@ class ApiClient extends Client
         $this->secretKey = $config['secretKey'] ?? '';
         $this->accessToken = $config['accessToken'] ?? '';
         $this->email = $config['email'] ?? '';
-        $this->nameApp = $config['nameApp'] ?? '';
+        $this->appName = $config['appName'] ?? '';
 
         $config['handler'] = $stack;
 
         $config['headers'] = [
-            'Accept' => 'application/json'
+            'Accept'       => 'application/json',
+            'Content-Type' => 'application/json'
         ];
+
+        if ($this->accessToken)
+            $config['headers']['Authorization'] = "Bearer {$this->accessToken}";
+
+        if ($this->appName && $this->email)
+            $config['headers']['User-Agent'] = "{$this->appName} ({$this->email})";
 
         parent::__construct($config);
     }
@@ -53,23 +61,10 @@ class ApiClient extends Client
     public function request($method, $uri = '', array $options = [])
     {
         try {
-
-            $options = array_merge($options, [
-                'auth' => [
-                    $this->clientId,
-                    $this->secretKey
-                ], ['headers' =>
-                        [
-                            "Authorization: Bearer {$this->accessToken}", "Content-Type: application/json",
-                            "User-Agent: {$this->nomeApp} ({$this->emailTecnico})"
-                        ]
-                ]
-            ]);
-
             return parent::request($method, $uri, $options);
 
         } catch (ClientException $e) {
-            throw new ApiException(
+            throw new MelhorEnvioException(
                 $e->getMessage(),
                 $e->getCode(),
                 $e->getResponse()

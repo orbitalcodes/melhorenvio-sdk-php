@@ -19,25 +19,9 @@ class User
     /**
      * Armazena os dados do usuario.
      *
-     * @var $user
+     * @var array
      */
-    private $user;
-
-
-    /**
-     * Método responsável por iniciar um objeto vazio
-     * na constante.
-     *
-     * User constructor.
-     */
-    public function __construct()
-    {
-        // Instancia o objeto
-        // Criando um objeto vazio
-        $this->user = new stdClass();
-
-    } // End >> fun::__construct()
-
+    private $user = [];
 
     /**
      * Armazena no objeto do usuario as informações pessoais
@@ -49,12 +33,12 @@ class User
     public function setInformacaoPessoal($nome, $email, $telefone)
     {
         // Atribui ao objeto
-        $this->user->name = $nome;
-        $this->user->email = $email;
+        $this->user['name'] = $nome;
+        $this->user['email'] = $email;
 
         // Limpa o telefone
-        $this->user->phone = preg_replace("/[^0-9]/", "", $telefone);
-    } // End >> fun::setInformacaoPessoal()
+        $this->user['phone'] = preg_replace("/[^0-9]/", "", $telefone);
+    }
 
 
     /**
@@ -68,23 +52,21 @@ class User
     public function setDocumentos($cpf = null, $cnpj = null, $ie = null)
     {
         // Armazena o cpf que é obrigatorio
-        $this->user->document = preg_replace("/[^0-9]/", "", $cpf);
+        $this->user['document'] = preg_replace("/[^0-9]/", "", $cpf);
 
         // Verifica se possui cnpj
-        if(!empty($cnpj))
-        {
+        if (!empty($cnpj)) {
             // Armazena o cnpj e limpa o mesmo
-            $this->user->company_document = preg_replace("/[^0-9]/", "", $cnpj);
+            $this->user['company_document'] = preg_replace("/[^0-9]/", "", $cnpj);
         }
 
         // Verifica se possui IE
-        if(!empty($ie))
-        {
+        if (!empty($ie)) {
             // Armazena o ie e limpa o mesmo
-            $this->user->state_register = preg_replace("/[^0-9]/", "", $ie);
+            $this->user['state_register'] = preg_replace("/[^0-9]/", "", $ie);
         }
 
-    } // End >> fun::setDocumentos()
+    }
 
 
     /**
@@ -104,19 +86,17 @@ class User
     public function setEndereco(array $endereco)
     {
         // Armazena os dados
-        $this->user->address = $endereco["endereco"];
-        $this->user->number = $endereco["numero"];
-        $this->user->district = $endereco["bairro"];
-        $this->user->city = $endereco["cidade"];
+        $this->user['address'] = $endereco["endereco"];
+        $this->user['number'] = $endereco["numero"];
+        $this->user['district'] = $endereco["bairro"];
+        $this->user['city'] = $endereco["cidade"];
 
         // Limpa o cep
-        $this->user->postal_code = preg_replace("/[^0-9]/", "", $endereco["cep"]);
+        $this->user['postal_code'] = preg_replace("/[^0-9]/", "", $endereco["cep"]);
 
         // Fixo como Brasil
-        $this->user->country_id = "BR";
-
-    } // End >> fun::setEndereco()
-
+        $this->user['country_id'] = "BR";
+    }
 
     /**
      * Método responsável por retornar o objeto de
@@ -124,9 +104,9 @@ class User
      *
      * @return stdClass
      */
-    public function getObjetc()
+    public function toArray()
     {
         return $this->user;
-    } // Error >> fun::getObjetc()
+    }
 
-} // End >> Class::User
+}

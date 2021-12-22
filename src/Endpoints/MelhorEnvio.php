@@ -3,12 +3,10 @@
 namespace MelhorEnvio\Endpoints;
 
 use DateTime;
-use stdClass;
-use MelhorEnvio\Client\ApiClient;
-use MelhorEnvio\Client\Response;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use Psr\Http\Message\ResponseInterface;
+use MelhorEnvio\Exceptions\MelhorEnvioException;
+use MelhorEnvio\Resoucers\Product;
+use MelhorEnvio\Resoucers\User;
+use MelhorEnvio\Resoucers\WorkingDays;
 
 /**
  * Classe responsável por realizar as solicitações com a
@@ -41,7 +39,7 @@ class MelhorEnvio extends EndpointBase
         $state = (!empty($state) ? "&state=" . $state : "");
 
         // Configura a url de redirecionamento
-        $urlRedirect = $this->url . "oauth/authorize?client_id={$this->clientId}&redirect_uri={$this->urlCallback}&response_type=code{$state}&scope={$permission}";
+        $urlRedirect = $this->getBaseUri("oauth/authorize?client_id={$this->clientId}&redirect_uri={$this->urlCallback}&response_type=code{$state}&scope={$permission}");
 
         // Verifica se deve redirecionar ou retornar a url
         if ($redirect == true) {
@@ -52,7 +50,6 @@ class MelhorEnvio extends EndpointBase
             return $urlRedirect;
         }
     }
-
 
     /**
      * Método responsável por solicitar um token de acesso na plataforma do melhor envio.
@@ -80,7 +77,6 @@ class MelhorEnvio extends EndpointBase
     {
         return $this->requestoOrRefreshToken($code);
     }
-
 
     /**
      * Método responsável por solicitar a renovação de um token de acesso já existente
@@ -128,7 +124,7 @@ class MelhorEnvio extends EndpointBase
             $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
 
             // Realiza a requisição
-            $resultado = (new SendCurl($this->nameApp, $this->email))->request($url, "GET", $header, null);
+            $resultado = (new SendCurl($this->appName, $this->email))->request($url, "GET", $header, null);
 
             // Decodifica
             $resultado = json_decode($resultado);
@@ -180,7 +176,7 @@ class MelhorEnvio extends EndpointBase
             $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
 
             // Realiza a requisição
-            $resultado = (new SendCurl($this->nameApp, $this->email))->request($url, "GET", $header, null);
+            $resultado = (new SendCurl($this->appName, $this->email))->request($url, "GET", $header, null);
 
             // Decodifica
             $resultado = json_decode($resultado);
@@ -245,111 +241,76 @@ class MelhorEnvio extends EndpointBase
      * ---------------------------------------------------------------------------------------
      * @param $cepOrigem
      * @param $cepDestino
-     * @param $Products
+     * @param Product $products
      * ----------------------------------------------------------------------
      * @return array
      */
-    public function calculate($cepOrigem, $cepDestino, Product $Products)
+    public function calculate($cepOrigem, $cepDestino, Product $products, array $services = [], array $options = [])
     {
-        // Variavel de retorno
-        $retorno = ["error" => true, "data" => null];
-        $dados = null;
+        $dados = [];
 
-        // Recupera o accessToken
-        $accessToken = $this->accessToken;
+        if (empty($this->accessToken))
+            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).');
 
-        // Verifica se informou o token
-        if (!empty($accessToken)) {
-            // Url
-            $url = $this->url . "api/v2/me/shipment/calculate";
+        $cepOrigem = preg_replace("/[^0-9]/", "", $cepOrigem);
+        $cepDestino = preg_replace("/[^0-9]/", "", $cepDestino);
 
-            // Limpa os ceps
-            $cepOrigem = preg_replace("/[^0-9]/", "", $cepOrigem);
-            $cepDestino = preg_replace("/[^0-9]/", "", $cepDestino);
+        $produtos = $products->getProducts();
 
-            // Recupera os produtos
-            $produtos = $Products->getProducts();
+        $payload = [
+            'from' => [
+                'postal_code' => $cepOrigem
+            ],
+            'to'   => [
+                'postal_code' => $cepDestino
+            ],
+        ];
 
-            // Cria o objeto de conteudo
-            $conteudo = new stdClass();
+        if($services)
+            $payload['services'] = implode(',', $services);
 
-            // Informa a origem e destino
-            $conteudo->from = new stdClass();
-            $conteudo->from->postal_code = $cepOrigem;
+        if($options)
+            $payload['options'] = $options;
 
-            $conteudo->to = new stdClass();
-            $conteudo->to->postal_code = $cepDestino;
+        foreach ($produtos as $produto) {
+            $payload['products'][] = $produto;
+        }
 
-            // Percorre os produtos
-            foreach ($produtos as $produto) {
-                // Adiciona no array
-                $conteudo->products[] = $produto;
+        $resultado = $this->request("POST", 'api/v2/me/shipment/calculate', ['json' => $payload])->getResponse();
+
+        $dataNow = new DateTime('now');
+
+        if (is_array($resultado)) {
+            foreach ($resultado as $res) {
+                if (empty($res->error)) {
+                    $dados[] = [
+                        "company"       => [
+                            "name"  => $res->company->name,
+                            "image" => $res->company->picture
+                        ],
+                        "code"          => $res->id,
+                        "service"       => $res->name,
+                        "value"         => $res->custom_price,
+                        "timeDays"      => $res->custom_delivery_time,
+                        "deliveryRange" => $res->custom_delivery_range,
+                        "deadline"      => [
+                            "min" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->min),
+                            "max" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->max)
+                        ],
+                        "packages"      => $res->packages
+                    ];
+                }
             }
 
-            // Converte em json o conteudo
-            $conteudo = json_encode($conteudo);
+            return $dados;
 
-            // Realiza a requisição
-            $resultado = $this->request("POST", 'api/v2/me/shipment/calculate', $conteudo);
-
-            // Decodifica
-            $resultado1 = json_decode($resultado);
-
-            $resultado = [];
-
-            \is_object($resultado1) ? $resultado[0] = $resultado1 : $resultado = $resultado1;
-
-            $dataNow = new DateTime('now');
-
-            // Verifica se é um array
-            if (is_array($resultado)) {
-                // Percorre
-                foreach ($resultado as $res) {
-                    // Verifica se não deu erro
-                    if (empty($res->error)) {
-                        // Add o conteudo
-                        $dados[] = [
-                            "company"       => [
-                                "name"  => $res->company->name,
-                                "image" => $res->company->picture
-                            ],
-                            "code"          => $res->id,
-                            "service"       => $res->name,
-                            "value"         => $res->custom_price,
-                            "timeDays"      => $res->custom_delivery_time,
-                            "deliveryRange" => $res->custom_delivery_range,
-                            "deadline"      => [
-                                "min" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->min),
-                                "max" => WorkingDays::getWorkingDays($dataNow, $res->custom_delivery_range->max)
-                            ],
-                            "packages"      => $res->packages
-                        ];
-                    }
-                }
-
-                // Monta o retorno
-                $retorno = [
-                    "error"   => false,
-                    "message" => "success",
-                    "data"    => $dados
-                ];
-            } else {
-                // Verifica de deu erro na autenticacao
-                if ($resultado == "Unauthenticated") {
-                    // Informa do erro
-                    $retorno["message"] = "Unauthenticated";
-                } else {
-                    // Informa do erro
-                    $retorno["message"] = "Ocorreu um erro ao calcular.";
-                }
-            } // Error >> Autenticação ou Erro no calculo.
         } else {
-            $retorno["message"] = "Access Token não informado.";
-        } // Error >> Token não informado
-
-        // Retorno
-        return $retorno;
-
+            if ($resultado == "Unauthenticated") {
+                throw new MelhorEnvioException('Unauthenticated');
+            } else {
+                throw new MelhorEnvioException("Ocorreu um erro ao calcular.");
+            }
+        }
     }
 
 
@@ -369,9 +330,9 @@ class MelhorEnvio extends EndpointBase
      * ]
      *
      * ----------------------------------------------------------------------
-     * @param User $Destinario
-     * @param User $Remetente
-     * @param Product $Products
+     * @param User $destinario
+     * @param User $remetente
+     * @param Product $products
      * @param array $packages
      * @param $codService
      * @param $idPedido
@@ -379,41 +340,26 @@ class MelhorEnvio extends EndpointBase
      * ----------------------------------------------------------------------
      * @return array
      */
-    public function requestBuyTag(User $Destinario, User $Remetente, Product $Products, array $packages, $codService, $idPedido, $urlPedido = null)
+    public function requestBuyTag(User $destinario, User $remetente, Product $products, array $packages, $codService, $idPedido, $urlPedido = null): array
     {
-        // Variaveis
-        $retorno = ["error" => true, "data" => null];
         $valorTotal = 0;
+        $payload = [];
 
-        // Url de requisição
-        $url = $this->url . "api/v2/me/cart";
+        if (empty($this->accessToken))
+            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).');
 
-        // Recupera o accessToken
-        $accessToken = $this->accessToken;
+        $produtos = $products->getProducts();
 
-        // Recupera os produtos
-        $produtos = $Products->getProducts();
+        $payload['service'] = $codService;
 
-        // Inicia o objeto de envio
-        $conteudo = new stdClass();
+        $payload['from'] = $remetente->toArray();
+        $payload['to'] = $destinario->toArray();
 
-        // Servico
-        $conteudo->service = $codService;
-
-        // Informações do remetente e destinatario
-        $conteudo->from = $Remetente->getObjetc();
-        $conteudo->to = $Destinario->getObjetc();
-
-        // Produtos
-        $conteudo->products = [];
-
-        // Percorre os produtos
         foreach ($produtos as $produto) {
             // Soma o total
             $valorTotal = $valorTotal + ($produto['quantity'] * $produto['insurance_value']);
 
-            // Adiciona o produto
-            $conteudo->products[] = [
+            $payload['products'][] = [
                 "name"          => $produto['name'],
                 "quantity"      => $produto['quantity'],
                 "unitary_value" => $produto['insurance_value']
@@ -421,156 +367,62 @@ class MelhorEnvio extends EndpointBase
         }
 
         // Opcoes
-        $conteudo->options = new stdClass();
-        $conteudo->options->insurance_value = $valorTotal;
-        $conteudo->options->receipt = false;
-        $conteudo->options->own_hand = false;
-        $conteudo->options->reverse = false;
-        $conteudo->options->non_commercial = true;
-        $conteudo->options->tags[] = [
+        $payload['options']['insurance_value'] = $valorTotal;
+        $payload['options']['receipt'] = false;
+        $payload['options']['own_hand'] = false;
+        $payload['options']['reverse'] = false;
+        $payload['options']['non_commercial'] = true;
+        $payload['options']['tags'][] = [
             "tag" => $idPedido,
             "url" => $urlPedido
         ];
 
-        // Adiciona os pacotes para compra
-        $conteudo->volumes = $packages;
+        $payload['volumes'] = $packages;
 
-        // Header
-        $header = ["Authorization: Bearer {$accessToken}", "Content-Type: application/json"];
+        $resposta = $this->request("POST", 'api/v2/me/cart', ['json' => $payload])->getResponse();
 
-        // Codifica em json o conteudo
-        $conteudo = json_encode($conteudo);
-
-        // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
-
-        // Decodifica a responsa
-        $resposta = json_decode($resposta);
-
-        // Veririfca se deu erro
         if (!empty($resposta->errors) || !empty($resposta->error)) {
-            // Adiciona o objeto
-            $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-        } else {
-            // Retorno de sucesso
-            $retorno = [
-                "error"   => false,
-                "message" => "success",
-                "data"    => $resposta->id
-            ];
+            throw new MelhorEnvioException((!empty($resposta->errors) ? $resposta->errors : $resposta->error));
         }
 
-        // Retorno
-        return $retorno;
-
+        return is_array($resposta) ? $resposta : [$resposta];
     }
-
 
     /**
      * Método responsável por processar a compra das etiquetas já solicitadas
      * anteriormente e apos pago solicita a geração do numero da etiqueta.
      * ----------------------------------------------------------------------
-     * @param array $ids
-     * @return array
+     * @param array $tags
+     * @return array Sua compra com as etiquetas e outras informações
      */
-    public function processBuyTag(array $ids)
+    public function processBuyTag(array $tags): array
     {
-        // Gera o pagamento
-        $retorno = ["error" => true, "data" => null];
-        $resposta = null;
-        $conteudo = null;
+        $payload = [];
 
-        // Url
-        $url = $this->url . "api/v2/me/shipment/checkout";
+        $payload['orders'] = $this->getTagsIds($tags);
 
-        // Configura o conteudo
-        $conteudo = new stdClass();
-        $conteudo->orders = $ids;
+        $purchasedTags = $this->request("POST", 'api/v2/me/shipment/checkout', ['json' => $payload])->getResponse();
 
-        // Codifica o conteudo em json
-        $conteudo = json_encode($conteudo);
-
-        // Instancia o objeto de requisição
-        $sendCurl = new SendCurl($this->nameApp, $this->email);
-
-        // Header
-        $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
-
-        // Realiza a requisição
-        $resposta = $sendCurl->request($url, "POST", $header, $conteudo);
-
-        // Decodifica
-        $resposta = json_decode($resposta);
-
-        // Verifica se não deu erro
-        if ($resposta && empty($resposta->errors) && empty($resposta->error)) {
-            // Gera a etiqueta
-            $retorno = $this->requestTag($sendCurl, $header, $conteudo);
-        } else {
-            // Incorporra o erro
-            $retorno["message"] = "Ocorreu um erro ao realizar compra das etiquetas";
-            $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-        } // Error >> Erro ao realizar compra das etiquetas
-
-        // Retorno
-        return $retorno;
-
+        return (array)$purchasedTags->purchase;
     }
-
 
     /**
      * Método responsável por solicitar o arquivo para impressão
      * da etiqueta.
      * ----------------------------------------------------------------------
-     * @param array $ids
+     * @param array $tags
      * @return array
      */
-    public function printTag(array $ids)
+    public function printTag(array $tags): array
     {
-        // Gera o pagamento
-        $retorno = ["error" => true, "data" => null];
-        $resposta = null;
-        $conteudo = null;
+        $payload = [];
+        $payload['mode'] = "public";
+        $payload['orders'] = $tags;
 
-        // Url
-        $url = $this->url . "api/v2/me/shipment/print";
+        $urls = $this->request("POST", 'api/v2/me/shipment/print', ['json' => $payload])->getResponse();
 
-        // Configura o conteudo
-        $conteudo = new stdClass();
-        $conteudo->mode = "public";
-        $conteudo->orders = $ids;
-
-        // Codifica o conteudo em json
-        $conteudo = json_encode($conteudo);
-
-        // Header
-        $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
-
-        // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
-
-        // Decodifica
-        $resposta = json_decode($resposta);
-
-        // Verifica se deu erro
-        if (!empty($resposta->errors) || !empty($resposta->error)) {
-            // Explica o erro ocorrido
-            $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-            $retorno["message"] = "Ocorreu um erro ao imprimir etiqueta";
-        } else {
-            // Array de sucesso
-            $retorno = [
-                "error"   => false,
-                "message" => "success",
-                "data"    => $resposta
-            ];
-        }
-
-        // Retorno
-        return $retorno;
-
+        return (array)$urls;
     }
-
 
     /**
      * Método responsável por solicitar os códigos de rastreio
@@ -588,52 +440,18 @@ class MelhorEnvio extends EndpointBase
      * ]
      *
      * ----------------------------------------------------------------------
-     * @param array $ids
-     * @return array
+     * @param array $tags
+     * @return array trackings
      */
-    public function getTracking(array $ids)
+    public function getTracking(array $tags): array
     {
-        // Variaveis
-        $retorno = ["error" => true, "data" => null];
+        $payload = [];
+        $payload['orders'] = $tags;
 
-        // Configura a url
-        $url = $this->url . "api/v2/me/shipment/tracking";
+        $tags = $this->request("POST", 'api/v2/me/shipment/tracking', ['json' => $payload])->getResponse();
 
-        // Configura o conteudo
-        $conteudo = new stdClass();
-        $conteudo->orders = $ids;
-
-        // Codifica o conteudo em json
-        $conteudo = json_encode($conteudo);
-
-        // Header
-        $header = ["Authorization: Bearer {$this->accessToken}", "Content-Type: application/json"];
-
-        // Realiza a requisição
-        $resposta = (new SendCurl($this->nameApp, $this->email))->request($url, "POST", $header, $conteudo);
-
-        // Decodifica
-        $resposta = json_decode($resposta);
-
-        // Verifica se deu erro
-        if (!empty($resposta->errors) || !empty($resposta->error)) {
-            // Explica o erro ocorrido
-            $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-            $retorno["message"] = "Ocorreu um erro ao solicitar códgio de rastreio.";
-        } else {
-            // Array de sucesso
-            $retorno = [
-                "error"   => false,
-                "message" => "success",
-                "data"    => $resposta
-            ];
-        }
-
-        // Retorno
-        return $retorno;
-
+        return (array)$tags;
     }
-
 
     /**
      * Método interno responsável por realizar a configuração e a requisição
@@ -643,60 +461,30 @@ class MelhorEnvio extends EndpointBase
      * @param null $refreshToken
      * @return array
      */
-    private function requestoOrRefreshToken($code = null, $refreshToken = null)
+    protected function requestoOrRefreshToken($code = null, $refreshToken = null)
     {
-        // Variavel de retorno
-        $retorno = ["error" => true, "data" => null]; // Pré definida como erro.
-
-        // Configura a url
-        $url = $this->url . "oauth/token";
-
-        // Conteudo a ser informado na solicitação
-        $conteudo = [
+        $payload = [
             "grant_type"    => "authorization_code",
             "client_id"     => $this->clientId,
             "client_secret" => $this->secretKey,
-
         ];
 
-        // Verifica o tipo da solicitacao
         if (!empty($code)) {
-            $conteudo["redirect_uri"] = $this->urlCallback;
-            $conteudo["code"] = $code;
+            $payload["redirect_uri"] = $this->urlCallback;
+            $payload["code"] = $code;
         } else {
-            $conteudo["grant_type"] = "refresh_token";
-            $conteudo["refresh_token"] = $refreshToken;
+            $payload["grant_type"] = "refresh_token";
+            $payload["refresh_token"] = $refreshToken;
         }
 
-        // Instancia o objeto de requisição
-        $sendCurl = new SendCurl($this->nameApp, $this->email);
+        $resposta = $this->request("POST", "oauth/token", ['json' => $payload])->getResponse();
 
-        // Realiza a solicitação
-        $resposta = $sendCurl->request($url, "POST", null, $conteudo);
+        $retorno = [
+            "accessToken"   => $resposta->access_token,
+            "tokenValidate" => date("Y-m-d", strtotime("+28 days")),
+            "refreshToken"  => $resposta->refresh_token
+        ];
 
-        // Decodifica o json
-        $resposta = (!empty($resposta) ? json_decode($resposta) : null);
-
-        // Verifica se retornou o token
-        if (!empty($resposta->access_token)) {
-            // Retorna como sucesso
-            $retorno = [
-                "error" => false,
-                "data"  => [
-                    "accessToken"   => $resposta->access_token,
-                    "tokenValidate" => date("Y-m-d", strtotime("+28 days")),
-                    "refreshToken"  => $resposta->refresh_token
-                ]
-            ];
-        } else {
-            // Retorna como erro
-            $retorno = [
-                "error" => true,
-                "data"  => $resposta->error_description
-            ];
-        }
-
-        // Retorno
         return $retorno;
     }
 
@@ -704,40 +492,52 @@ class MelhorEnvio extends EndpointBase
      * Método responsável por solicitar a geração de uma etiqueta
      * apos ela estiver comprada.
      * --------------------------------------------------------------------------
-     * @param SendCurl $sendCurl
-     * @param $header
-     * @param $conteudo
+     * @param array $purchases
      * --------------------------------------------------------------------------
      * @return array
      */
-    private function requestTag(SendCurl $sendCurl, $header, $conteudo)
+    public function requestTag(array $purchases): array
     {
-        // Gera o pagamento
-        $retorno = ["error" => true, "data" => null];
-        $resposta = null;
+        $payload = ['orders' => $this->getPurchaseOrdersIds($purchases)];
+        $response = $this->request("POST", 'api/v2/me/shipment/generate', ['json' => $payload])->getResponse();
+        return (array)$response;
+    }
 
-        // Url
-        $url = $this->url . "api/v2/me/shipment/generate";
+    public function cancelTag(string $tag, string $description)
+    {
+        $payload = [
+            'order' => [
+                'id'          => $tag,
+                'reason_id'   => 2,
+                'description' => $description,
+            ]
+        ];
 
-        // Realiza a requisição
-        $resposta = $sendCurl->request($url, "POST", $header, $conteudo);
+        $response = $this->request("POST", 'api/v2/me/shipment/cancel', ['json' => $payload])->getResponse();
 
-        $resposta = json_decode($resposta);
+        if (!$response->{$tag}->canceled)
+            throw new MelhorEnvioException('Não foi possível cancelar esta etiqueta');
+    }
 
-        // Verifica se deu erro
-        if (!empty($resposta->errors) || !empty($resposta->error)) {
-            // Explica o erro ocorrido
-            $retorno["data"] = (!empty($resposta->errors) ? $resposta->errors : $resposta->error);
-            $retorno["message"] = "Erro ao gerar etiqueta";
-        } else {
-            $retorno = [
-                "error"   => false,
-                "message" => "success",
-                "data"    => $resposta
-            ];
+    protected function getTagsIds(array $tags): array
+    {
+        $ids = [];
+
+        foreach ($tags as $tag) {
+            $ids[] = $tag->id;
         }
 
-        // Retorna
-        return $retorno;
+        return $ids;
+    }
+
+    protected function getPurchaseOrdersIds(array $purchase): array
+    {
+        $ids = [];
+
+        foreach ($purchase['orders'] as $order) {
+            $ids[] = $order->id;
+        }
+
+        return $ids;
     }
 }
