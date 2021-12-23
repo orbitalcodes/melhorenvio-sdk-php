@@ -19,6 +19,17 @@ use MelhorEnvio\Resoucers\WorkingDays;
  */
 class MelhorEnvio extends EndpointBase
 {
+    protected $defaultOptions = [
+        'receipt'        => false,
+        'own_hand'       => false,
+        'non_commercial' => true,
+    ];
+
+    public function __construct(array $options = [])
+    {
+        $this->defaultOptions = array_merge($this->defaultOptions, $options);
+    }
+
     /**
      * Método responsável por montar a url de redirecionamento de usuário, para o mesmo
      * autorizar o app a possui permissão sobre a conta do melhor envio.
@@ -266,11 +277,13 @@ class MelhorEnvio extends EndpointBase
             ],
         ];
 
-        if($services)
+        $payload['options'] = $this->defaultOptions;
+
+        if ($services)
             $payload['services'] = implode(',', $services);
 
-        if($options)
-            $payload['options'] = $options;
+        if ($options)
+            $payload['options'] = array_merge($this->defaultOptions, $options);
 
         foreach ($produtos as $produto) {
             $payload['products'][] = $produto;
@@ -340,7 +353,7 @@ class MelhorEnvio extends EndpointBase
      * ----------------------------------------------------------------------
      * @return array
      */
-    public function requestBuyTag(User $destinario, User $remetente, Product $products, array $packages, $codService, $idPedido, $urlPedido = null): array
+    public function requestBuyTag(User $destinario, User $remetente, Product $products, array $packages, $codService, array $options = []): array
     {
         $valorTotal = 0;
         $payload = [];
@@ -368,14 +381,10 @@ class MelhorEnvio extends EndpointBase
 
         // Opcoes
         $payload['options']['insurance_value'] = $valorTotal;
-        $payload['options']['receipt'] = false;
-        $payload['options']['own_hand'] = false;
-        $payload['options']['reverse'] = false;
-        $payload['options']['non_commercial'] = true;
-        $payload['options']['tags'][] = [
-            "tag" => $idPedido,
-            "url" => $urlPedido
-        ];
+        $payload['options'] = $this->defaultOptions;
+
+        if ($options)
+            $payload['options'] = array_merge($this->defaultOptions, $options);
 
         $payload['volumes'] = $packages;
 
