@@ -66,8 +66,8 @@ class ApiClient extends Client
         } catch (ClientException $e) {
             throw new MelhorEnvioException(
                 $e->getMessage(),
-                $e->getCode(),
-                $e->getResponse()
+                $e->getResponse(),
+                $e->getCode()
             );
         }
     }

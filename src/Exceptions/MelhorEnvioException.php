@@ -16,12 +16,12 @@ class MelhorEnvioException extends Exception
 
     protected $errors = [];
 
-    public function __construct($message = "", int $code = 0, Response $response)
+    public function __construct($message = "", Response $response = null, int $code = 0)
     {
         $this->response = $response;
         $message = $this->prepareMessage($response, $message);
 
-        parent::__construct($message, $code);
+        parent::__construct($message, $response ? $response->getStatusCode() : $code);
     }
 
     protected function prepareMessage($response, $message): string

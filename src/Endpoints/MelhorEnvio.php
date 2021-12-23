@@ -261,7 +261,7 @@ class MelhorEnvio extends EndpointBase
         $dados = [];
 
         if (empty($this->accessToken))
-            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).');
+            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).', 401);
 
         $cepOrigem = preg_replace("/[^0-9]/", "", $cepOrigem);
         $cepDestino = preg_replace("/[^0-9]/", "", $cepDestino);
@@ -289,12 +289,13 @@ class MelhorEnvio extends EndpointBase
             $payload['products'][] = $produto;
         }
 
-        $resultado = $this->request("POST", 'api/v2/me/shipment/calculate', ['json' => $payload])->getResponse();
+        $response = $this->request("POST", 'api/v2/me/shipment/calculate', ['json' => $payload]);
+        $result = $response->getResponse();
 
         $dataNow = new DateTime('now');
 
-        if (is_array($resultado)) {
-            foreach ($resultado as $res) {
+        if (is_array($result)) {
+            foreach ($result as $res) {
                 if (empty($res->error)) {
                     $dados[] = [
                         "company"       => [
@@ -318,10 +319,10 @@ class MelhorEnvio extends EndpointBase
             return $dados;
 
         } else {
-            if ($resultado == "Unauthenticated") {
-                throw new MelhorEnvioException('Unauthenticated');
+            if ($result == "Unauthenticated") {
+                throw new MelhorEnvioException('Unauthenticated', $response);
             } else {
-                throw new MelhorEnvioException("Ocorreu um erro ao calcular.");
+                throw new MelhorEnvioException("Ocorreu um erro ao calcular.", $response);
             }
         }
     }
@@ -359,7 +360,7 @@ class MelhorEnvio extends EndpointBase
         $payload = [];
 
         if (empty($this->accessToken))
-            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).');
+            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).', null, 401);
 
         $produtos = $products->getProducts();
 
@@ -388,13 +389,14 @@ class MelhorEnvio extends EndpointBase
 
         $payload['volumes'] = $packages;
 
-        $resposta = $this->request("POST", 'api/v2/me/cart', ['json' => $payload])->getResponse();
+        $response = $this->request("POST", 'api/v2/me/cart', ['json' => $payload])->getResponse();
+        $result = $response->getResponse();
 
-        if (!empty($resposta->errors) || !empty($resposta->error)) {
-            throw new MelhorEnvioException((!empty($resposta->errors) ? $resposta->errors : $resposta->error));
+        if (!empty($result->errors) || !empty($result->error)) {
+            throw new MelhorEnvioException((!empty($result->errors) ? $result->errors : $result->error), $response);
         }
 
-        return is_array($resposta) ? $resposta : [$resposta];
+        return is_array($result) ? $result : [$result];
     }
 
     /**
@@ -522,10 +524,11 @@ class MelhorEnvio extends EndpointBase
             ]
         ];
 
-        $response = $this->request("POST", 'api/v2/me/shipment/cancel', ['json' => $payload])->getResponse();
+        $response = $this->request("POST", 'api/v2/me/shipment/cancel', ['json' => $payload]);
+        $result = $response->getResponse();
 
-        if (!$response->{$tag}->canceled)
-            throw new MelhorEnvioException('Não foi possível cancelar esta etiqueta');
+        if (!$result->{$tag}->canceled)
+            throw new MelhorEnvioException('Não foi possível cancelar esta etiqueta', $response);
     }
 
     protected function getTagsIds(array $tags): array
