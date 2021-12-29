@@ -389,7 +389,7 @@ class MelhorEnvio extends EndpointBase
 
         $payload['volumes'] = $packages;
 
-        $response = $this->request("POST", 'api/v2/me/cart', ['json' => $payload])->getResponse();
+        $response = $this->request("POST", 'api/v2/me/cart', ['json' => $payload]);
         $result = $response->getResponse();
 
         if (!empty($result->errors) || !empty($result->error)) {
