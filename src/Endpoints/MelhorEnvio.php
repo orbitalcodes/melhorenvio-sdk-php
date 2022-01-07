@@ -282,8 +282,7 @@ class MelhorEnvio extends EndpointBase
         if ($services)
             $payload['services'] = implode(',', $services);
 
-        if ($options)
-            $payload['options'] = array_merge($this->defaultOptions, $options);
+        $payload['options'] = array_merge($this->defaultOptions, $options);
 
         foreach ($produtos as $produto) {
             $payload['products'][] = $produto;
@@ -534,6 +533,12 @@ class MelhorEnvio extends EndpointBase
     public function getServices()
     {
         $response = $this->request("GET", 'api/v2/me/shipment/services')->getResponse();
+        return (array)$response;
+    }
+
+    public function getCompanies()
+    {
+        $response = $this->request("GET", 'api/v2/me/shipment/companies')->getResponse();
         return (array)$response;
     }
 
