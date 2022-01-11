@@ -19,15 +19,22 @@ class MelhorEnvioException extends Exception
     public function __construct($message = "", Response $response = null, int $code = 0)
     {
         $this->response = $response;
-        $message = $this->prepareMessage($response, $message);
+        $message = $this->prepareMessage($message);
 
         parent::__construct($message, $response ? $response->getStatusCode() : $code);
     }
 
-    protected function prepareMessage($response, $message): string
+    protected function prepareMessage($message): string
     {
-        $message = $this->response->getResponse()->error ?? $message;
-        $message = $this->response->getResponse()->message ?? $message;
+        $responseContent = $this->response->getResponse();
+        if (property_exists($responseContent, 'errors') && $responseContent->errors) {
+            foreach ((array)$responseContent->errors as $field => $errors) {
+                $this->errors[$field] = is_array($errors) ? $errors : [$errors];
+            }
+        }
+
+        $message = $responseContent->error ?? $message;
+        $message = $responseContent->message ?? $message;
 
         return trim(explode('response:', $message)[1] ?? $message, PHP_EOL);
     }
@@ -35,11 +42,25 @@ class MelhorEnvioException extends Exception
     /**
      * Get the HTTP response header
      *
-     * @return string HTTP response header
      */
-    public function getResponse()
+    public function getResponse(): Response
     {
         return $this->response;
+    }
+
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    public function getErrorsMessage(): ?string
+    {
+        $errorsResult = '';
+        foreach ($this->errors as $field => $errors) {
+            $errorsResult .= $field . ': ' . implode(', ', $errors);
+        }
+
+        return $errorsResult;
     }
 
     public function getErrorMessageCode(): string
