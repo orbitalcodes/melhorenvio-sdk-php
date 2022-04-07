@@ -88,6 +88,7 @@ class User
         // Armazena os dados
         $this->user['address'] = $endereco["endereco"];
         $this->user['number'] = $endereco["numero"];
+        $this->user['complement'] = $endereco["complemento"];
         $this->user['district'] = $endereco["bairro"];
         $this->user['city'] = $endereco["cidade"];
 
