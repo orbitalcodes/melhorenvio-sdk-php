@@ -86,11 +86,12 @@ class User
     public function setEndereco(array $endereco)
     {
         // Armazena os dados
-        $this->user['address'] = $endereco["endereco"];
-        $this->user['number'] = $endereco["numero"];
-        $this->user['complement'] = $endereco["complemento"];
-        $this->user['district'] = $endereco["bairro"];
-        $this->user['city'] = $endereco["cidade"];
+        $this->user['address'] = $endereco["endereco"] ?? '';
+        $this->user['number'] = $endereco["numero"] ?? '';
+        if (isset($endereco["complemento"]) && $endereco["complemento"])
+            $this->user['complement'] = $endereco["complemento"];
+        $this->user['district'] = $endereco["bairro"] ?? '';
+        $this->user['city'] = $endereco["cidade"] ?? '';
 
         // Limpa o cep
         $this->user['postal_code'] = preg_replace("/[^0-9]/", "", $endereco["cep"]);
