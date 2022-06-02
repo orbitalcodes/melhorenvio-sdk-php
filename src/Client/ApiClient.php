@@ -58,7 +58,7 @@ class ApiClient extends Client
         parent::__construct($config);
     }
 
-    public function request($method, $uri = '', array $options = [])
+    public function request(string $method, $uri = '', array $options = []): ResponseInterface
     {
         try {
             return parent::request($method, $uri, $options);
