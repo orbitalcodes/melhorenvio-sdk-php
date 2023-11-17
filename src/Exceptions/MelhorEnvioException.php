@@ -26,8 +26,8 @@ class MelhorEnvioException extends Exception
 
     protected function prepareMessage($message): string
     {
-        $responseContent = $this->response->getResponse();
-        if (property_exists($responseContent, 'errors') && $responseContent->errors) {
+        $responseContent = $this->response?->getResponse();
+        if ($responseContent && property_exists($responseContent, 'errors') && $responseContent->errors) {
             foreach ((array)$responseContent->errors as $field => $errors) {
                 $this->errors[$field] = is_array($errors) ? $errors : [$errors];
             }

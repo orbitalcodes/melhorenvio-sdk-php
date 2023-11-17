@@ -261,7 +261,7 @@ class MelhorEnvio extends EndpointBase
         $dados = [];
 
         if (empty($this->accessToken))
-            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).', 401);
+            throw new MelhorEnvioException('Autenticação é obrigatória (accessToken).', null, 401);
 
         $cepOrigem = preg_replace("/[^0-9]/", "", $cepOrigem);
         $cepDestino = preg_replace("/[^0-9]/", "", $cepDestino);
