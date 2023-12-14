@@ -293,7 +293,8 @@ class MelhorEnvio extends EndpointBase
 
         $dataNow = new DateTime('now');
 
-        if (is_array($result)) {
+        if ((is_array($result) || is_object($result)) && $result) {
+            $result = is_object($result) ? [$result] : $result;
             foreach ($result as $res) {
                 if (empty($res->error)) {
                     $dados[] = [
