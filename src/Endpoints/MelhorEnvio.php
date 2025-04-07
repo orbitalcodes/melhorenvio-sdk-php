@@ -7,6 +7,7 @@ use MelhorEnvio\Exceptions\MelhorEnvioException;
 use MelhorEnvio\Resoucers\Product;
 use MelhorEnvio\Resoucers\User;
 use MelhorEnvio\Resoucers\WorkingDays;
+use MelhorEnvio\Client\ApiClient;
 
 /**
  * Classe responsável por realizar as solicitações com a
@@ -28,6 +29,11 @@ class MelhorEnvio extends EndpointBase
     public function __construct(array $options = [])
     {
         $this->defaultOptions = array_merge($this->defaultOptions, $options);
+    }
+
+    public function getApiClient(): ApiClient
+    {
+        return parent::getApiClient();
     }
 
     /**

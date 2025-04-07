@@ -23,6 +23,12 @@ class ApiClient extends Client
 
     protected $accessToken;
 
+    protected $refreshToken;
+
+    protected $tokenValidate;
+
+    protected $onTokenRefresh;
+
     public function __construct(array $config = [])
     {
         $stack = HandlerStack::create();
@@ -39,8 +45,11 @@ class ApiClient extends Client
         $this->clientId = $config['clientId'] ?? '';
         $this->secretKey = $config['secretKey'] ?? '';
         $this->accessToken = $config['accessToken'] ?? '';
+        $this->refreshToken = $config['refreshToken'] ?? '';
+        $this->tokenValidate = $config['tokenValidate'] ?? '';
         $this->email = $config['email'] ?? '';
         $this->appName = $config['appName'] ?? '';
+        $this->onTokenRefresh = $config['onTokenRefresh'] ?? null;
 
         $config['handler'] = $stack;
 
@@ -58,12 +67,32 @@ class ApiClient extends Client
         parent::__construct($config);
     }
 
+    public function setOnTokenRefresh(callable $callback)
+    {
+        $this->onTokenRefresh = $callback;
+        return $this;
+    }
+
     public function request(string $method, $uri = '', array $options = []): ResponseInterface
     {
         try {
             return parent::request($method, $uri, $options);
 
         } catch (ClientException $e) {
+            if ($e->getResponse()->getStatusCode() === 401 && $this->refreshToken) {
+                if ($this->onTokenRefresh) {
+                    $newTokens = call_user_func($this->onTokenRefresh, $this->refreshToken);
+                    if ($newTokens) {
+                        $this->accessToken = $newTokens['accessToken'];
+                        $this->refreshToken = $newTokens['refreshToken'];
+                        $this->tokenValidate = $newTokens['tokenValidate'];
+                        
+                        $options['headers']['Authorization'] = "Bearer {$this->accessToken}";
+                        return parent::request($method, $uri, $options);
+                    }
+                }
+            }
+            
             throw new MelhorEnvioException(
                 $e->getMessage(),
                 $e->getResponse(),
