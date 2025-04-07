@@ -80,6 +80,10 @@ class ApiClient extends Client
     public function request(string $method, $uri = '', array $options = []): ResponseInterface
     {
         try {
+            if ($this->accessToken) {
+                $options['headers']['Authorization'] = "Bearer {$this->accessToken}";
+            }
+
             return parent::request($method, $uri, $options);
 
         } catch (ClientException $e) {
