@@ -29,6 +29,10 @@ class ApiClient extends Client
 
     protected $onTokenRefresh;
 
+    protected $refreshAttempts = 0;
+
+    protected $isRefreshing = false;
+
     public function __construct(array $config = [])
     {
         $stack = HandlerStack::create();
@@ -79,7 +83,14 @@ class ApiClient extends Client
             return parent::request($method, $uri, $options);
 
         } catch (ClientException $e) {
-            if ($e->getResponse()->getStatusCode() === 401 && $this->refreshToken) {
+            if ($e->getResponse()->getStatusCode() === 401 && 
+                $this->refreshToken && 
+                !$this->isRefreshing && 
+                $this->refreshAttempts < 2) {
+                
+                $this->isRefreshing = true;
+                $this->refreshAttempts++;
+
                 if ($this->onTokenRefresh) {
                     $newTokens = call_user_func($this->onTokenRefresh, $this->refreshToken);
                     if ($newTokens) {
@@ -88,9 +99,13 @@ class ApiClient extends Client
                         $this->tokenValidate = $newTokens['tokenValidate'];
                         
                         $options['headers']['Authorization'] = "Bearer {$this->accessToken}";
+                        
+                        $this->isRefreshing = false;
                         return parent::request($method, $uri, $options);
                     }
                 }
+                
+                $this->isRefreshing = false;
             }
             
             throw new MelhorEnvioException(
