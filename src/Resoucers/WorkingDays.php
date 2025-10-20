@@ -31,7 +31,17 @@ class WorkingDays
         ];
 
 		$workingDays = $start->diffInDaysFiltered(function (Carbon $date) use ($holidays) {
-			return $date->isWeekday() && !in_array($date, $holidays);
+			if (!$date->isWeekday()) {
+				return false;
+			}
+			
+			foreach ($holidays as $holiday) {
+				if ($date->isSameDay($holiday)) {
+					return false;
+				}
+			}
+			
+			return true;
 		}, $end);
 
 		$totalDays = $days + ($days - $workingDays);
